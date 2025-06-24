@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import subscriptionRouter from "../routes/subscription.routes.js";
+
 
 const subscriptionSchema = new mongoose.Schema({
     name: {
@@ -52,7 +52,7 @@ const subscriptionSchema = new mongoose.Schema({
     },
     renewalDate: {
         type: Date,
-        required: [true, 'Renewal date is required'],  // Fixed message typo
+        //required: [true, 'Renewal date is required'],  // Fixed message typo
         validate: {
             validator: function(value) {
                 return value > this.startDate;
@@ -70,21 +70,24 @@ const subscriptionSchema = new mongoose.Schema({
 
 // Auto-calculate renewal date if missing
 subscriptionSchema.pre('save', function (next) {
-    if(!this.renewalDate) {
-        const renewalPeriods = {
-            daily: 1,
-            weekly: 7,
-            monthly: 30,
-            yearly: 365,
-        };
+    const renewalPeriods = {
+        Weekly: 7,
+        Monthly: 30,
+        Yearly: 365,
+    };
 
+    if (!this.renewalDate) {
         this.renewalDate = new Date(this.startDate);
-        this.renewalDate.setDate(this.renewalDate.getDate() + renewalPeriods[this.frequency]);
+        this.renewalDate.setDate(this.renewalDate.getDate() + (renewalPeriods[this.frequency] || 30));
     }
 
     if (this.renewalDate < new Date()) {
         this.status = 'inactive';
     }
-})
 
-export default subscriptionSchema;
+    next(); // ✅ MUST CALL NEXT!
+});
+
+const Subscription = mongoose.model('Subscription', subscriptionSchema);
+
+export default Subscription;
